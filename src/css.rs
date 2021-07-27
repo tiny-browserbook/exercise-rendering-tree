@@ -96,9 +96,9 @@ pub enum CSSValue {
     Keyword(String),
 }
 
-pub fn parse(raw: String) -> Stylesheet {
+pub fn parse(raw: &str) -> Stylesheet {
     rules()
-        .parse(raw.as_str())
+        .parse(raw)
         .map(|(rules, _)| Stylesheet::new(rules))
         .unwrap()
 }
