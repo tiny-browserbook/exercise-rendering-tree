@@ -6,6 +6,15 @@ use crate::{
 };
 use std::collections::HashMap;
 
+pub type PropertyMap = HashMap<String, CSSValue>;
+
+#[derive(Debug, PartialEq)]
+pub enum Display {
+    Inline,
+    Block,
+    None,
+}
+
 /// `StyledNode` wraps `Node` with related CSS properties.
 /// It forms a tree as `Node` does.
 #[derive(Debug, PartialEq)]
@@ -13,11 +22,11 @@ pub struct StyledNode<'a> {
     pub node_type: &'a NodeType,
     pub children: Vec<StyledNode<'a>>,
 
-    pub properties: HashMap<String, CSSValue>,
+    pub properties: PropertyMap,
 }
 
-fn to_styled_node<'a>(node: &'a Box<Node>, stylesheet: &Stylesheet) -> Option<StyledNode<'a>> {
-    let mut properties: HashMap<String, CSSValue> = [].iter().cloned().collect();
+pub fn to_styled_node<'a>(node: &'a Box<Node>, stylesheet: &Stylesheet) -> Option<StyledNode<'a>> {
+    let mut properties: PropertyMap = [].iter().cloned().collect();
     for matched_rule in stylesheet.rules.iter().filter(|r| r.matches(node)) {
         for declaration in &matched_rule.declarations {
             properties.insert(declaration.name.clone(), declaration.value.clone());
@@ -38,6 +47,19 @@ fn to_styled_node<'a>(node: &'a Box<Node>, stylesheet: &Stylesheet) -> Option<St
         properties,
         children,
     })
+}
+
+impl<'a> StyledNode<'a> {
+    pub fn display(&self) -> Display {
+        match self.properties.get("display") {
+            Some(CSSValue::Keyword(s)) => match s.as_str() {
+                "block" => Display::Block,
+                "none" => Display::None,
+                _ => Display::Inline,
+            },
+            _ => Display::Inline,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -332,10 +354,7 @@ mod tests {
             }],
         }]);
 
-        assert_eq!(
-            to_styled_node(parent, &stylesheet),
-            None
-        );
+        assert_eq!(to_styled_node(parent, &stylesheet), None);
     }
 
     #[test]
